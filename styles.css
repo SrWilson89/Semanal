@@ -4,6 +4,8 @@ body {
     flex-direction: column;
     align-items: center;
     margin: 20px;
+    width: 100vh;
+    height: 100vw;
 }
 
 h1 {
@@ -11,9 +13,10 @@ h1 {
 }
 
 table {
-    border-collapse: collapse;
+    /* border-collapse: collapse; */
     width: 80%;
     margin-top: 20px;
+    overflow-x: scroll;
 }
 
 th, td {
