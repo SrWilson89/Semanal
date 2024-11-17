@@ -29,8 +29,29 @@ function saveData() {
     alert('Datos guardados');
 }
 
+// Función para borrar los datos de la tabla y de localStorage
+function clearData() {
+    const table = document.getElementById('data-table');
+
+    // Recorre las filas de la tabla y borra el contenido de las celdas
+    for (let i = 1; i < table.rows.length; i++) {
+        for (let j = 1; j < table.rows[i].cells.length; j++) {
+            table.rows[i].cells[j].innerText = '';
+        }
+    }
+
+    // Elimina los datos almacenados en localStorage
+    localStorage.removeItem('tableData');
+    alert('Datos borrados');
+}
+
+// Añadir evento al botón de borrar
+document.getElementById('clear-button').addEventListener('click', clearData);
+
+
 // Añadir evento al botón de guardar
 document.getElementById('save-button').addEventListener('click', saveData);
 
 // Cargar los datos al cargar la página
 window.onload = loadData;
+save-button
