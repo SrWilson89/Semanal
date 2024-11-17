@@ -40,3 +40,19 @@ button {
     font-size: 16px;
     cursor: pointer;
 }
+
+#clear-button {
+    background-color: rgb(117, 0, 0);     /* Fondo rojo */
+    color: white;              /* Letras blancas */
+    font-weight: bold;         /* Letras en negrita */
+    padding: 10px 20px;        /* Espaciado interno */
+    border: none;              /* Sin borde */
+    border-radius: 5px;        /* Bordes redondeados */
+    cursor: pointer;          /* Cambia el cursor al pasar por encima */
+    font-size: 16px;           /* Tamaño de la fuente */
+    transition: background-color 0.3s; /* Efecto de transición para el cambio de color */
+}
+
+#clear-button:hover {
+    background-color: rgb(255, 0, 0); /* Cambio de color al pasar el cursor por encima */
+}
