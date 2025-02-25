@@ -57,3 +57,19 @@ button {
 #clear-button:hover {
     background-color: rgb(255, 0, 0); /* Cambio de color al pasar el cursor por encima */
 }
+
+#save-button{
+    background-color: rgb(44, 111, 17);     /* Fondo rojo */
+    color: white;              /* Letras blancas */
+    font-weight: bold;         /* Letras en negrita */
+    padding: 10px 20px;        /* Espaciado interno */
+    border: none;              /* Sin borde */
+    border-radius: 5px;        /* Bordes redondeados */
+    cursor: pointer;          /* Cambia el cursor al pasar por encima */
+    font-size: 16px;           /* Tamaño de la fuente */
+    transition: background-color 0.3s; /* Efecto de transición para el cambio de color */
+}
+
+#save-button:hover {
+    background-color: rgb(0, 255, 106); /* Cambio de color al pasar el cursor por encima */
+}
