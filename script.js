@@ -49,8 +49,22 @@ function clearData() {
 
 // Función para generar y compartir PDF
 function shareData() {
+    // Título del plan semanal con fecha actual
+    const today = new Date();
+    const dateString = today.toLocaleDateString('es-ES');
+    const title = `Plan Semanal - ${dateString}`;
+    
+    // Crear un elemento temporal para el título
+    const titleDiv = document.createElement('div');
+    titleDiv.innerHTML = `<h2 style="text-align: center;">${title}</h2>`;
+    
     // Elemento que queremos convertir a PDF
     const element = document.getElementById('table-container');
+    
+    // Crear un contenedor temporal
+    const container = document.createElement('div');
+    container.appendChild(titleDiv.cloneNode(true));
+    container.appendChild(element.cloneNode(true));
     
     // Opciones para el PDF
     const opt = {
@@ -62,21 +76,23 @@ function shareData() {
     };
 
     // Generar PDF
-    html2pdf().from(element).set(opt).toPdf().get('pdf').then(function(pdf) {
-        // Cuando el PDF esté listo, obtener el blob
-        const pdfBlob = pdf.output('blob');
-        
-        // Crear un objeto URL para el blob
-        const pdfUrl = URL.createObjectURL(pdfBlob);
-        
-        // Crear mensaje para WhatsApp
-        const message = "Aquí está mi plan semanal:";
-        
-        // Crear enlace de WhatsApp con el PDF adjunto
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}&attachment=${encodeURIComponent(pdfUrl)}`;
-        
-        // Abrir WhatsApp en una nueva pestaña
-        window.open(whatsappUrl, '_blank');
+    html2pdf().from(element).set(opt).save().then(function() {
+        // Después de guardar el PDF, preguntar si desea compartirlo por WhatsApp
+        setTimeout(() => {
+            if (confirm('¿Deseas compartir este plan semanal por WhatsApp?')) {
+                // Mensaje para WhatsApp
+                const message = "Aquí está mi plan semanal:";
+                
+                // Crear enlace de WhatsApp solo con texto
+                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                
+                // Abrir WhatsApp en una nueva pestaña
+                window.open(whatsappUrl, '_blank');
+                
+                // Mostrar instrucciones
+                alert('1. Se abrirá WhatsApp Web\n2. Envía el mensaje\n3. Luego usa el clip (📎) para adjuntar el PDF que acabas de descargar');
+            }
+        }, 1000);
     });
 }
 
