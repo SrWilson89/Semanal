@@ -1,105 +1,171 @@
-// Función para cargar los datos desde localStorage al cargar la página
-function loadData() {
-    const table = document.getElementById('data-table');
-    const savedData = JSON.parse(localStorage.getItem('tableData'));
+class Planificador {
+    constructor() {
+        this.table = document.getElementById('data-table');
+        this.initEventListeners();
+        this.setupAutoSave();
+        this.loadData();
+        this.setupBeforeUnload();
+    }
 
-    if (savedData) {
-        for (let i = 1; i < table.rows.length; i++) {
-            for (let j = 1; j < table.rows[i].cells.length; j++) {
-                table.rows[i].cells[j].innerText = savedData[i - 1][j - 1];
+    initEventListeners() {
+        document.getElementById('save-button').addEventListener('click', () => this.saveData());
+        document.getElementById('clear-button').addEventListener('click', () => this.clearData());
+        document.getElementById('share-button').addEventListener('click', () => this.shareData());
+        
+        this.table.addEventListener('input', (e) => {
+            if (e.target.tagName === 'TD' && e.target.contentEditable === 'true') {
+                e.target.classList.add('modified');
             }
-        }
-    }
-}
-
-// Función para guardar los datos en localStorage
-function saveData() {
-    const table = document.getElementById('data-table');
-    const data = [];
-
-    for (let i = 1; i < table.rows.length; i++) {
-        const row = [];
-        for (let j = 1; j < table.rows[i].cells.length; j++) {
-            row.push(table.rows[i].cells[j].innerText);
-        }
-        data.push(row);
+        });
     }
 
-    localStorage.setItem('tableData', JSON.stringify(data));
-    alert('Datos guardados');
-}
-
-// Función para borrar los datos de la tabla y de localStorage
-function clearData() {
-    const confirmar = confirm("¿Estás seguro de que quieres borrar todos los datos de la semana? Esta acción no se puede deshacer.");
-
-    if (confirmar) {
-        const table = document.getElementById('data-table');
-
-        for (let i = 1; i < table.rows.length; i++) {
-            for (let j = 1; j < table.rows[i].cells.length; j++) {
-                table.rows[i].cells[j].innerText = '';
+    setupAutoSave() {
+        setInterval(() => {
+            const modifiedCells = document.querySelectorAll('.modified');
+            if (modifiedCells.length > 0) {
+                this.saveData(false);
+                this.showAlert('Cambios guardados automáticamente', 'success');
             }
-        }
-
-        localStorage.removeItem('tableData');
-        alert('Datos borrados');
+        }, 120000); // 2 minutos
     }
-}
 
-// Función para generar y compartir PDF
-function shareData() {
-    // Título del plan semanal con fecha actual
-    const today = new Date();
-    const dateString = today.toLocaleDateString('es-ES');
-    const title = `Plan Semanal - ${dateString}`;
-    
-    // Crear un elemento temporal para el título
-    const titleDiv = document.createElement('div');
-    titleDiv.innerHTML = `<h2 style="text-align: center;">${title}</h2>`;
-    
-    // Elemento que queremos convertir a PDF
-    const element = document.getElementById('table-container');
-    
-    // Crear un contenedor temporal
-    const container = document.createElement('div');
-    container.appendChild(titleDiv.cloneNode(true));
-    container.appendChild(element.cloneNode(true));
-    
-    // Opciones para el PDF
-    const opt = {
-        margin: 10,
-        filename: 'plan_semanal.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-    };
+    setupBeforeUnload() {
+        window.addEventListener('beforeunload', (e) => {
+            if (document.querySelector('.modified')) {
+                e.preventDefault();
+                e.returnValue = 'Tienes cambios sin guardar. ¿Seguro que quieres salir?';
+            }
+        });
+    }
 
-    // Generar PDF
-    html2pdf().from(element).set(opt).save().then(function() {
-        // Después de guardar el PDF, preguntar si desea compartirlo por WhatsApp
+    showAlert(message, type) {
+        const alert = document.createElement('div');
+        alert.className = `alert ${type}`;
+        alert.textContent = message;
+        document.querySelector('.alerts-container').appendChild(alert);
+        
         setTimeout(() => {
-            if (confirm('¿Deseas compartir este plan semanal por WhatsApp?')) {
-                // Mensaje para WhatsApp
-                const message = "Aquí está mi plan semanal:";
-                
-                // Crear enlace de WhatsApp solo con texto
-                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-                
-                // Abrir WhatsApp en una nueva pestaña
-                window.open(whatsappUrl, '_blank');
-                
-                // Mostrar instrucciones
-                alert('1. Se abrirá WhatsApp Web\n2. Envía el mensaje\n3. Luego usa el clip (📎) para adjuntar el PDF que acabas de descargar');
+            alert.style.animation = 'fadeOut 0.5s ease';
+            setTimeout(() => alert.remove(), 500);
+        }, 3000);
+    }
+
+    validateData() {
+        const emptyCells = [...this.table.querySelectorAll('td[contenteditable="true"]')]
+            .filter(td => td.textContent.trim() === '');
+        
+        if (emptyCells.length > 0) {
+            this.showAlert(`Tienes ${emptyCells.length} celdas vacías`, 'warning');
+            return false;
+        }
+        return true;
+    }
+
+    saveData(showAlert = true) {
+        try {
+            const data = [];
+            for (let i = 1; i < this.table.rows.length; i++) {
+                const row = [];
+                for (let j = 1; j < this.table.rows[i].cells.length; j++) {
+                    row.push(this.table.rows[i].cells[j].textContent);
+                }
+                data.push(row);
             }
-        }, 1000);
-    });
+
+            const versionedData = {
+                timestamp: new Date().toISOString(),
+                data: data
+            };
+
+            const history = JSON.parse(localStorage.getItem('planHistory') || '[]';
+            history.push(versionedData);
+            if (history.length > 5) history.shift();
+
+            localStorage.setItem('planHistory', JSON.stringify(history));
+            localStorage.setItem('tableData', JSON.stringify(data));
+            
+            this.table.querySelectorAll('.modified').forEach(td => td.classList.remove('modified'));
+            
+            if (showAlert) {
+                this.showAlert('Datos guardados correctamente ✅', 'success');
+            }
+
+        } catch (error) {
+            this.showAlert('Error al guardar los datos ❌', 'error');
+            console.error('Error:', error);
+        }
+    }
+
+    loadData() {
+        try {
+            const savedData = JSON.parse(localStorage.getItem('tableData'));
+            if (!savedData) return;
+
+            for (let i = 1; i < this.table.rows.length; i++) {
+                for (let j = 1; j < this.table.rows[i].cells.length; j++) {
+                    this.table.rows[i].cells[j].textContent = savedData[i - 1][j - 1] || '';
+                }
+            }
+        } catch (error) {
+            this.showAlert('Error al cargar datos ❌', 'error');
+        }
+    }
+
+    async shareData() {
+        try {
+            document.querySelector('.loading-spinner').classList.remove('hidden');
+            
+            const element = document.getElementById('table-container');
+            const today = new Date();
+            const dateString = today.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            const options = {
+                filename: `Plan_Semanal_${dateString.replace(/ /g, '_')}.pdf`,
+                html2canvas: { 
+                    scale: 2,
+                    letterRendering: true,
+                    useCORS: true
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'landscape' 
+                },
+                pagebreak: { mode: 'avoid-all' }
+            };
+
+            await html2pdf().from(element).set(options).save();
+            
+            setTimeout(() => {
+                if (confirm('¿Quieres compartir el plan por WhatsApp?')) {
+                    const message = `📋 Mi plan semanal (${dateString}):`;
+                    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                }
+            }, 500);
+            
+        } catch (error) {
+            this.showAlert('Error al generar PDF ❌', 'error');
+        } finally {
+            document.querySelector('.loading-spinner').classList.add('hidden');
+        }
+    }
+
+    clearData() {
+        if (!confirm('¿Borrar todos los datos?\nEsta acción no se puede deshacer.')) return;
+        
+        localStorage.removeItem('tableData');
+        this.table.querySelectorAll('td[contenteditable="true"]').forEach(td => {
+            td.textContent = '';
+            td.classList.remove('modified');
+        });
+        this.showAlert('Datos borrados correctamente 🗑️', 'info');
+    }
 }
 
-// Event listeners
-document.getElementById('clear-button').addEventListener('click', clearData);
-document.getElementById('save-button').addEventListener('click', saveData);
-document.getElementById('share-button').addEventListener('click', shareData);
-
-// Cargar los datos al cargar la página
-window.onload = loadData;
+// Inicialización
+document.addEventListener('DOMContentLoaded', () => new Planificador());

@@ -3,151 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tabla de Datos</title>
+    <title>Planificador Semanal</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="shortcut icon" href="Anotación 2024-11-21 170819.png" />
-    <!-- Agregamos la librería html2pdf.js -->
+    <link rel="shortcut icon" href="Anotación 2024-11-21 170819.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
-<style>
-    footer {
-    width: 100vw;
-    background-color: #333; /* Fondo oscuro */
-    color: #fff; /* Texto blanco */
-    text-align: center; /* Centrar contenido */
-    padding: 20px 0; /* Espaciado vertical */
-    font-family: Arial, sans-serif; /* Fuente agradable */
-}
-
-footer a {
-  color: #1e90ff; /* Azul para los enlaces */
-  text-decoration: none; /* Quitar subrayado */
-  margin: 0 15px; /* Separación entre enlaces */
-  font-size: 16px; /* Tamaño de fuente */
-  transition: color 0.3s ease; /* Transición para hover */
-}
-
-footer a:hover {
-  color: #ffd700; /* Cambiar color al pasar el cursor */
-}
-
-footer a:active {
-  color: #ff4500; /* Color diferente al hacer clic */
-}
-</style>
 <body>
-    <h1>Tabla de Datos Semanal</h1>
-    <h4>Recuerda pulsar GUARDAR DATOS una vez termines de introducir o modificarlos</h4>
-    <h4>BORRAR SEMANA Borra todos los datos de la tabla</h4>
-    <div id="table-container">
-        <table id="data-table">
-            <thead>
-                <tr>
-                    <th></th>
-                    <th>Lunes</th>
-                    <th>Martes</th>
-                    <th>Miércoles</th>
-                    <th>Jueves</th>
-                    <th>Viernes</th>
-                    <th>Sábado</th>
-                    <th>Domingo</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Desayuno</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                </tr>
-                <tr>
-                    <td>Almuerzo</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                </tr>
-                <tr>
-                    <td>Comida</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                </tr>
-                <tr>
-                    <td>Merienda</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                </tr>
-                <tr>
-                    <td>Cena</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                </tr>
-                <tr>
-                    <td>Recena</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                </tr>
-                <tr>
-                    <td><strong>Ejercicio</strong></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                </tr>
-                <tr>
-                    <td>Apuntes</strong></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                </tr>
-            </tbody>
-        </table>
+    <h1>🥗 Planificador Semanal Saludable</h1>
+    
+    <div class="alerts-container"></div>
+    
+    <div class="table-wrapper">
+        <div id="table-container">
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Lunes</th>
+                        <th>Martes</th>
+                        <th>Miércoles</th>
+                        <th>Jueves</th>
+                        <th>Viernes</th>
+                        <th>Sábado</th>
+                        <th>Domingo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Desayuno</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>Almuerzo</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>Comida</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>Merienda</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>Cena</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>Recena</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ejercicio</strong></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>Apuntes</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
+
     <div class="button-container">
-        <button id="save-button">Guardar Datos</button>
-        <button id="clear-button">Borrar Semana</button>
-        <button id="share-button">Compartir</button>
+        <button id="save-button" aria-label="Guardar cambios">💾 Guardar</button>
+        <button id="clear-button" aria-label="Borrar toda la semana">🗑️ Borrar</button>
+        <button id="share-button" aria-label="Compartir plan">📤 Compartir</button>
     </div>
-    <br>
-    <br>
+
+    <div class="loading-spinner hidden">
+        <div class="spinner"></div>
+        <p>Generando PDF...</p>
+    </div>
+
     <footer>
         <a href="https://srwilson89.github.io/Lista-de-Tareas/">Lista de Compras</a>
         <a href="https://srwilson89.github.io/Balance/">Balance</a>
     </footer>
+    
     <script src="script.js"></script>
 </body>
 </html>
