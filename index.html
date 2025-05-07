@@ -6,10 +6,10 @@
     <title>Planificador Semanal</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="shortcut icon" href="Anotación 2024-11-21 170819.png">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
-    <h1>🥗 Planificador Semanal Saludable</h1>
+    <h1>🥗 Planificador Semanal</h1>
     
     <div class="alerts-container"></div>
     
@@ -117,12 +117,12 @@
     <div class="button-container">
         <button id="save-button" aria-label="Guardar cambios">💾 Guardar</button>
         <button id="clear-button" aria-label="Borrar toda la semana">🗑️ Borrar</button>
-        <button id="share-button" aria-label="Compartir plan">📤 Compartir</button>
+        <button id="share-button" aria-label="Guardar como Imagen">🖼️ Guardar Imagen</button>
     </div>
 
     <div class="loading-spinner hidden">
         <div class="spinner"></div>
-        <p>Generando PDF...</p>
+        <p>Generando imagen...</p>
     </div>
 
     <footer>
