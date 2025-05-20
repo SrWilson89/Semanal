@@ -134,13 +134,15 @@ class Planificador {
                 day: 'numeric'
             });
             
-            // Crear un contenedor para la imagen
+            // Crear un contenedor para la imagen con dimensiones automáticas
             const imageContainer = document.createElement('div');
-            imageContainer.style.width = '800px';
             imageContainer.style.padding = '20px';
             imageContainer.style.backgroundColor = '#fff';
             imageContainer.style.boxShadow = '0 4px 20px rgba(232, 30, 99, 0.1)';
             imageContainer.style.borderRadius = '12px';
+            // Quitamos el ancho fijo para permitir que se ajuste al contenido
+            imageContainer.style.display = 'inline-block';
+            imageContainer.style.maxWidth = '100%';
             
             // Añadir título
             const title = document.createElement('h1');
@@ -165,6 +167,7 @@ class Planificador {
             newTable.style.borderCollapse = 'collapse';
             newTable.style.margin = '0 auto';
             newTable.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+            newTable.style.tableLayout = 'auto'; // Ajustar el ancho de las celdas según el contenido
             
             // Crear encabezado de tabla
             const thead = document.createElement('thead');
@@ -202,11 +205,14 @@ class Planificador {
                     newCell.style.border = '1px solid #ddd';
                     newCell.style.padding = '10px';
                     newCell.style.textAlign = 'center';
+                    newCell.style.wordWrap = 'break-word'; // Permitir el salto de línea dentro de las celdas
+                    newCell.style.maxWidth = '200px'; // Limitar el ancho máximo de las celdas
                     
                     // Si es la primera celda (título de la fila)
                     if (cell === cells[0]) {
                         newCell.style.fontWeight = 'bold';
                         newCell.style.backgroundColor = '#fff0f6';
+                        newCell.style.whiteSpace = 'nowrap'; // No permitir saltos de línea en los títulos
                     }
                     
                     newRow.appendChild(newCell);
@@ -228,16 +234,32 @@ class Planificador {
             notes.style.fontFamily = 'Segoe UI, Arial, sans-serif';
             imageContainer.appendChild(notes);
             
-            // Añadir el contenedor al body temporalmente
+            // Añadir el contenedor al body temporalmente pero fuera del flujo normal
             document.body.appendChild(imageContainer);
+            imageContainer.style.position = 'absolute';
+            imageContainer.style.left = '-9999px';
+            imageContainer.style.top = '0';
             
-            // Usar html2canvas para convertir el contenedor a imagen
+            // Usar html2canvas con opciones mejoradas
             const canvas = await html2canvas(imageContainer, {
-                scale: 2,
+                scale: 2, // Aumentar la escala para mejor calidad
                 logging: false,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: "#ffffff"
+                backgroundColor: "#ffffff",
+                windowWidth: document.documentElement.offsetWidth,
+                windowHeight: document.documentElement.offsetHeight,
+                scrollX: 0,
+                scrollY: 0,
+                // Asegurarse de capturar todo el contenido
+                height: imageContainer.scrollHeight,
+                width: imageContainer.scrollWidth,
+                // Evitar recorte
+                onclone: (clonedDoc, clonedElem) => {
+                    clonedElem.style.position = 'static';
+                    clonedElem.style.left = '0';
+                    clonedElem.style.top = '0';
+                }
             });
             
             // Convertir canvas a URL de imagen
