@@ -146,7 +146,7 @@ class Planificador {
             
             // Añadir título
             const title = document.createElement('h1');
-            title.textContent = '🥗 Planificador Semanal Saludable';
+            title.textContent = '🥗 Planificador Semanal';
             title.style.textAlign = 'center';
             title.style.color = '#880e4f';
             title.style.marginBottom = '10px';
