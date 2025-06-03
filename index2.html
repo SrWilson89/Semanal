@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planificador Semanal</title>
+    <link rel="shortcut icon" href="Anotación 2024-11-21 170819.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #e91e63;
+            --secondary-color: #f48fb1;
+            --background: #fff5f7;
+            --text-dark: #880e4f;
+            --success-color: #4CAF50;
+            --error-color: #f44336;
+            --warning-color: #ff9800;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: var(--background);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--text-dark);
+            text-align: center;
+            margin: 20px 0;
+            font-size: 2.2em;
+        }
+
+        .alerts-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .alert {
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            color: white;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .alert.success { background-color: var(--success-color); }
+        .alert.error { background-color: var(--error-color); }
+        .alert.warning { background-color: var(--warning-color); }
+        .alert.info { background-color: var(--primary-color); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            width: 95%;
+            margin: 20px auto;
+            box-shadow: 0 4px 20px rgba(232, 30, 99, 0.1);
+            border-radius: 12px;
+            background: white;
+            padding: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            min-width: 800px;
+        }
+
+        th, td {
+            border: 1px solid #f0f0f0;
+            text-align: center;
+            padding: 15px;
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            transition: all 0.3s ease;
+        }
+
+        td[contenteditable="true"] {
+            background: #fff0f6;
+            border: 2px solid transparent;
+        }
+
+        td[contenteditable="true"]:hover {
+            background: #ffe5ec;
+        }
+
+        td[contenteditable="true"]:focus {
+            background: white;
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        .modified {
+            background: #ffebee !important;
+            position: relative;
+        }
+
+        .modified::after {
+            content: "✎";
+            position: absolute;
+            right: 5px;
+            top: 2px;
+            color: var(--primary-color);
+            font-size: 0.8em;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 25px 0;
+        }
+
+        button {
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #save-button { 
+            background: var(--success-color); 
+            color: white; 
+        }
+
+        #clear-button { 
+            background: var(--error-color); 
+            color: white; 
+        }
+
+        #share-button { 
+            background: var(--secondary-color); 
+            color: var(--text-dark); 
+        }
+
+        #pdf-button { 
+            background: #2196F3; 
+            color: white; 
+        }
+
+        #diet-button { 
+            background: #FF6B35; 
+            color: white; 
+        }
+
+        .loading-spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(255,255,255,0.95);
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 15px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden { 
+            display: none; 
+        }
+
+        footer {
+            width: 100%;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 30px;
+        }
+
+        footer a {
+            color: #1e90ff;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        footer a:hover {
+            color: #ffd700;
+        }
+
+        @media (max-width: 768px) {
+            body { 
+                padding: 10px; 
+            }
+            
+            h1 { 
+                font-size: 1.8em; 
+            }
+            
+            .table-wrapper { 
+                width: 100%; 
+                padding: 5px;
+            }
+            
+            button { 
+                width: 100%; 
+                justify-content: center; 
+            }
+            
+            .alerts-container {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+            }
+            
+            .alert {
+                width: calc(100% - 20px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🥗 Planificador Semanal</h1>
+    
+    <div class="alerts-container"></div>
+    
+    <div class="table-wrapper">
+        <div id="table-container">
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Lunes</th>
+                        <th>Martes</th>
+                        <th>Miércoles</th>
+                        <th>Jueves</th>
+                        <th>Viernes</th>
+                        <th>Sábado</th>
+                        <th>Domingo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Desayuno</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>Almuerzo</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>Comida</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>Merienda</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>Cena</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>Recena</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ejercicio</strong></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td>Apuntes</td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="button-container">
+        <button id="save-button" aria-label="Guardar cambios">💾 Guardar</button>
+        <button id="clear-button" aria-label="Borrar toda la semana">🗑️ Borrar</button>
+        <button id="share-button" aria-label="Guardar como Imagen">🖼️ Guardar Imagen</button>
+        <!-- <button id="pdf-button" aria-label="Guardar como PDF">📄 Guardar PDF</button> -->
+        <button id="diet-button" aria-label="Generar Dieta">🥗 Generar Dieta</button>
+    </div>
+
+    <div class="loading-spinner hidden">
+        <div class="spinner"></div>
+        <p>Generando archivo...</p>
+    </div>
+
+    <footer>
+        <a href="https://srwilson89.github.io/Lista-de-Tareas/">Lista de Compras</a>
+        <a href="https://srwilson89.github.io/Balance/">Balance</a>
+    </footer>
+    
+    <script>
+        class Planificador {
+            constructor() {
+                this.table = document.getElementById('data-table');
+                this.initEventListeners();
+                this.setupAutoSave();
+                this.loadData();
+                this.setupBeforeUnload();
+                this.updateButtonText();
+            }
+
+            initEventListeners() {
+                document.getElementById('save-button').addEventListener('click', () => this.saveData());
+                document.getElementById('clear-button').addEventListener('click', () => this.clearData());
+                document.getElementById('share-button').addEventListener('click', () => this.exportarImagen());
+                document.getElementById('pdf-button').addEventListener('click', () => this.exportarPDF());
+                document.getElementById('diet-button').addEventListener('click', () => this.generarDieta());
+                
+                this.table.addEventListener('input', (e) => {
+                    if (e.target.tagName === 'TD' && e.target.contentEditable === 'true') {
+                        e.target.classList.add('modified');
+                    }
+                });
+            }
+
+            updateButtonText() {
+                const shareButton = document.getElementById('share-button');
+                shareButton.innerHTML = '🖼️ Guardar Imagen';
+                shareButton.setAttribute('aria-label', 'Guardar como Imagen');
+            }
+
+            setupAutoSave() {
+                setInterval(() => {
+                    const modifiedCells = document.querySelectorAll('.modified');
+                    if (modifiedCells.length > 0) {
+                        this.saveData(false);
+                        this.showAlert('Cambios guardados automáticamente', 'success');
+                    }
+                }, 120000);
+            }
+
+            setupBeforeUnload() {
+                window.addEventListener('beforeunload', (e) => {
+                    if (document.querySelector('.modified')) {
+                        e.preventDefault();
+                        e.returnValue = 'Tienes cambios sin guardar. ¿Seguro que quieres salir?';
+                    }
+                });
+            }
+
+            showAlert(message, type) {
+                const alert = document.createElement('div');
+                alert.className = `alert ${type}`;
+                alert.textContent = message;
+                document.querySelector('.alerts-container').appendChild(alert);
+                
+                setTimeout(() => {
+                    alert.style.animation = 'fadeOut 0.5s ease';
+                    setTimeout(() => alert.remove(), 500);
+                }, 3000);
+            }
+
+            validateData() {
+                const emptyCells = [...this.table.querySelectorAll('td[contenteditable="true"]')]
+                    .filter(td => td.textContent.trim() === '');
+                
+                if (emptyCells.length > 0) {
+                    this.showAlert(`Tienes ${emptyCells.length} celdas vacías`, 'warning');
+                    return false;
+                }
+                return true;
+            }
+
+            saveData(showAlert = true) {
+                try {
+                    const data = [];
+                    for (let i = 1; i < this.table.rows.length; i++) {
+                        const row = [];
+                        for (let j = 1; j < this.table.rows[i].cells.length; j++) {
+                            row.push(this.table.rows[i].cells[j].textContent);
+                        }
+                        data.push(row);
+                    }
+
+                    const versionedData = {
+                        timestamp: new Date().toISOString(),
+                        data: data
+                    };
+
+                    // Simulamos localStorage con variables en memoria
+                    window.planHistory = window.planHistory || [];
+                    window.planHistory.push(versionedData);
+                    if (window.planHistory.length > 5) window.planHistory.shift();
+
+                    window.tableData = data;
+                    
+                    this.table.querySelectorAll('.modified').forEach(td => td.classList.remove('modified'));
+                    
+                    if (showAlert) {
+                        this.showAlert('Datos guardados correctamente ✅', 'success');
+                    }
+
+                } catch (error) {
+                    this.showAlert('Error al guardar los datos ❌', 'error');
+                    console.error('Error:', error);
+                }
+            }
+
+            loadData() {
+                try {
+                    const savedData = window.tableData;
+                    if (!savedData) return;
+
+                    for (let i = 1; i < this.table.rows.length; i++) {
+                        for (let j = 1; j < this.table.rows[i].cells.length; j++) {
+                            this.table.rows[i].cells[j].textContent = savedData[i - 1][j - 1] || '';
+                        }
+                    }
+                } catch (error) {
+                    this.showAlert('Error al cargar datos ❌', 'error');
+                }
+            }
+
+            async exportarPDF() {
+                try {
+                    document.querySelector('.loading-spinner').classList.remove('hidden');
+                    
+                    // Guardar los datos antes de generar el PDF
+                    this.saveData(false);
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF('l', 'mm', 'a4'); // Formato horizontal
+                    
+                    const today = new Date();
+                    const dateString = today.toLocaleDateString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+
+                    // Configurar fuente
+                    doc.setFont('helvetica');
+                    
+                    // Título
+                    doc.setFontSize(20);
+                    doc.setTextColor(136, 14, 79); // Color similar al tema
+                    doc.text('🥗 Planificador Semanal', 148, 20, { align: 'center' });
+                    
+                    // Fecha
+                    doc.setFontSize(12);
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(`Fecha: ${dateString}`, 148, 30, { align: 'center' });
+
+                    // Obtener datos de la tabla
+                    const headers = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+                    const rows = [];
+                    
+                    // Obtener las filas de la tabla
+                    const tableRows = this.table.querySelectorAll('tbody tr');
+                    tableRows.forEach(row => {
+                        const rowData = [];
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach(cell => {
+                            rowData.push(cell.textContent.trim() || '');
+                        });
+                        rows.push(rowData);
+                    });
+
+                    // Crear tabla en PDF con autoTable
+                    if (typeof doc.autoTable === 'function') {
+                        doc.autoTable({
+                            head: [headers],
+                            body: rows,
+                            startY: 40,
+                            margin: { top: 40, left: 10, right: 10 },
+                            styles: {
+                                fontSize: 10,
+                                cellPadding: 3,
+                                textColor: [0, 0, 0],
+                            },
+                            headStyles: {
+                                fillColor: [233, 30, 99], // Color del header
+                                textColor: [255, 255, 255],
+                                fontStyle: 'bold',
+                            },
+                            alternateRowStyles: {
+                                fillColor: [255, 240, 246], // Color alternado
+                            },
+                            columnStyles: {
+                                0: { fontStyle: 'bold', fillColor: [255, 240, 246] }
+                            }
+                        });
+                    } else {
+                        // Fallback manual si autoTable no está disponible
+                        let yPosition = 50;
+                        const cellWidth = 35;
+                        const cellHeight = 15;
+                        
+                        // Dibujar headers
+                        doc.setFillColor(233, 30, 99);
+                        doc.setTextColor(255, 255, 255);
+                        doc.setFontSize(10);
+                        
+                        headers.forEach((header, i) => {
+                            const x = 15 + (i * cellWidth);
+                            doc.rect(x, yPosition, cellWidth, cellHeight, 'F');
+                            doc.text(header, x + cellWidth/2, yPosition + cellHeight/2 + 2, { align: 'center' });
+                        });
+                        
+                        yPosition += cellHeight;
+                        
+                        // Dibujar filas
+                        doc.setTextColor(0, 0, 0);
+                        rows.forEach((row, rowIndex) => {
+                            row.forEach((cell, cellIndex) => {
+                                const x = 15 + (cellIndex * cellWidth);
+                                
+                                // Color de fondo alternado
+                                if (rowIndex % 2 === 0) {
+                                    doc.setFillColor(255, 240, 246);
+                                    doc.rect(x, yPosition, cellWidth, cellHeight, 'F');
+                                }
+                                
+                                // Texto en negrita para la primera columna
+                                if (cellIndex === 0) {
+                                    doc.setFont('helvetica', 'bold');
+                                } else {
+                                    doc.setFont('helvetica', 'normal');
+                                }
+                                
+                                // Dibujar borde
+                                doc.rect(x, yPosition, cellWidth, cellHeight);
+                                
+                                // Texto centrado con manejo de texto largo
+                                const text = cell.length > 15 ? cell.substring(0, 12) + '...' : cell;
+                                doc.text(text, x + cellWidth/2, yPosition + cellHeight/2 + 2, { align: 'center' });
+                            });
+                            yPosition += cellHeight;
+                        });
+                    }
+
+                    // Pie de página
+                    doc.setFontSize(8);
+                    doc.setTextColor(128, 128, 128);
+                    doc.text(`Planificador generado el ${new Date().toLocaleString()}`, 148, 200, { align: 'center' });
+
+                    // Descargar PDF
+                    const fileName = `Plan_Semanal_${today.toISOString().split('T')[0]}.pdf`;
+                    doc.save(fileName);
+                    
+                    this.showAlert('PDF generado correctamente ✅', 'success');
+                    
+                } catch (error) {
+                    this.showAlert('Error al generar PDF ❌', 'error');
+                    console.error('Error al generar PDF:', error);
+                } finally {
+                    document.querySelector('.loading-spinner').classList.add('hidden');
+                }
+            }
+
+            async exportarImagen() {
+                try {
+                    document.querySelector('.loading-spinner').classList.remove('hidden');
+                    
+                    this.saveData(false);
+                    
+                    const today = new Date();
+                    const dateString = today.toLocaleDateString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    
+                    const imageContainer = document.createElement('div');
+                    imageContainer.style.padding = '20px';
+                    imageContainer.style.backgroundColor = '#fff';
+                    imageContainer.style.boxShadow = '0 4px 20px rgba(232, 30, 99, 0.1)';
+                    imageContainer.style.borderRadius = '12px';
+                    imageContainer.style.display = 'inline-block';
+                    imageContainer.style.maxWidth = '100%';
+                    
+                    const title = document.createElement('h1');
+                    title.textContent = '🥗 Planificador Semanal';
+                    title.style.textAlign = 'center';
+                    title.style.color = '#880e4f';
+                    title.style.marginBottom = '10px';
+                    title.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+                    imageContainer.appendChild(title);
+                    
+                    const dateElement = document.createElement('p');
+                    dateElement.textContent = `Fecha: ${dateString}`;
+                    dateElement.style.textAlign = 'center';
+                    dateElement.style.marginBottom = '20px';
+                    dateElement.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+                    imageContainer.appendChild(dateElement);
+                    
+                    const newTable = document.createElement('table');
+                    newTable.style.width = '100%';
+                    newTable.style.borderCollapse = 'collapse';
+                    newTable.style.margin = '0 auto';
+                    newTable.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+                    newTable.style.tableLayout = 'auto';
+                    
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+                    
+                    const originalHeaders = this.table.querySelectorAll('thead th');
+                    originalHeaders.forEach(th => {
+                        const newTh = document.createElement('th');
+                        newTh.textContent = th.textContent;
+                        newTh.style.backgroundColor = '#e91e63';
+                        newTh.style.color = 'white';
+                        newTh.style.border = '1px solid #ddd';
+                        newTh.style.padding = '12px';
+                        newTh.style.textAlign = 'center';
+                        headerRow.appendChild(newTh);
+                    });
+                    
+                    thead.appendChild(headerRow);
+                    newTable.appendChild(thead);
+                    
+                    const tbody = document.createElement('tbody');
+                    
+                    const originalRows = this.table.querySelectorAll('tbody tr');
+                    originalRows.forEach(row => {
+                        const newRow = document.createElement('tr');
+                        
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach(cell => {
+                            const newCell = document.createElement('td');
+                            newCell.textContent = cell.textContent;
+                            newCell.style.border = '1px solid #ddd';
+                            newCell.style.padding = '10px';
+                            newCell.style.textAlign = 'center';
+                            newCell.style.wordWrap = 'break-word';
+                            newCell.style.maxWidth = '200px';
+                            
+                            if (cell === cells[0]) {
+                                newCell.style.fontWeight = 'bold';
+                                newCell.style.backgroundColor = '#fff0f6';
+                                newCell.style.whiteSpace = 'nowrap';
+                            }
+                            
+                            newRow.appendChild(newCell);
+                        });
+                        
+                        tbody.appendChild(newRow);
+                    });
+                    
+                    newTable.appendChild(tbody);
+                    imageContainer.appendChild(newTable);
+                    
+                    const notes = document.createElement('p');
+                    notes.textContent = 'Planificador generado en ' + new Date().toLocaleString();
+                    notes.style.textAlign = 'center';
+                    notes.style.fontSize = '12px';
+                    notes.style.marginTop = '20px';
+                    notes.style.color = '#888';
+                    notes.style.fontFamily = 'Segoe UI, Arial, sans-serif';
+                    imageContainer.appendChild(notes);
+                    
+                    document.body.appendChild(imageContainer);
+                    imageContainer.style.position = 'absolute';
+                    imageContainer.style.left = '-9999px';
+                    imageContainer.style.top = '0';
+                    
+                    const canvas = await html2canvas(imageContainer, {
+                        scale: 2,
+                        logging: false,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: "#ffffff",
+                        windowWidth: document.documentElement.offsetWidth,
+                        windowHeight: document.documentElement.offsetHeight,
+                        scrollX: 0,
+                        scrollY: 0,
+                        height: imageContainer.scrollHeight,
+                        width: imageContainer.scrollWidth,
+                        onclone: (clonedDoc, clonedElem) => {
+                            clonedElem.style.position = 'static';
+                            clonedElem.style.left = '0';
+                            clonedElem.style.top = '0';
+                        }
+                    });
+                    
+                    const imageUrl = canvas.toDataURL('image/png');
+                    
+                    const link = document.createElement('a');
+                    link.href = imageUrl;
+                    link.download = `Plan_Semanal_${today.toISOString().split('T')[0]}.png`;
+                    
+                    link.click();
+                    
+                    document.body.removeChild(imageContainer);
+                    this.showAlert('Imagen guardada correctamente ✅', 'success');
+                    
+                } catch (error) {
+                    this.showAlert('Error al generar imagen ❌', 'error');
+                    console.error('Error al generar imagen:', error);
+                } finally {
+                    document.querySelector('.loading-spinner').classList.add('hidden');
+                }
+            }
+
+            generarDieta() {
+                const password = prompt('Introduce la contraseña para generar la dieta:');
+                
+                if (password !== 'iG070525') {
+                    this.showAlert('Esta función todavía está en construcción 🚧', 'warning');
+                    return;
+                }
+
+                // Dieta baja en calorías
+                const dietaBajaCalorias = {
+                    'Lunes': {
+                        'Desayuno': 'Yogur griego con fresas (150 cal)',
+                        'Almuerzo': 'Ensalada de atún (200 cal)',
+                        'Comida': 'Pechuga a la plancha + verduras (300 cal)',
+                        'Merienda': 'Manzana (80 cal)',
+                        'Cena': 'Salmón al vapor + brócoli (250 cal)',
+                        'Recena': 'Infusión de manzanilla'
+                    },
+                    'Martes': {
+                        'Desayuno': 'Avena con arándanos (180 cal)',
+                        'Almuerzo': 'Gazpacho + tostada integral (150 cal)',
+                        'Comida': 'Merluza al horno + calabacín (280 cal)',
+                        'Merienda': 'Yogur natural (90 cal)',
+                        'Cena': 'Tortilla francesa + ensalada (220 cal)',
+                        'Recena': 'Té verde'
+                    },
+                    'Miércoles': {
+                        'Desayuno': 'Batido de proteínas (160 cal)',
+                        'Almuerzo': 'Hummus con bastones verdura (120 cal)',
+                        'Comida': 'Pollo al curry light + arroz integral (320 cal)',
+                        'Merienda': 'Naranja (70 cal)',
+                        'Cena': 'Crema de calabaza (180 cal)',
+                        'Recena': 'Leche desnatada (50 cal)'
+                    },
+                    'Jueves': {
+                        'Desayuno': 'Tostada integral con aguacate (200 cal)',
+                        'Almuerzo': 'Smoothie verde (140 cal)',
+                        'Comida': 'Lubina a la sal + judías verdes (290 cal)',
+                        'Merienda': 'Puñado de almendras (100 cal)',
+                        'Cena': 'Revuelto de espinacas (190 cal)',
+                        'Recena': 'Infusión digestiva'
+                    },
+                    'Viernes': {
+                        'Desayuno': 'Café con leche desnatada + kiwi (120 cal)',
+                        'Almuerzo': 'Caldo de verduras (80 cal)',
+                        'Comida': 'Ternera magra + puré de coliflor (310 cal)',
+                        'Merienda': 'Gelatina sin azúcar (40 cal)',
+                        'Cena': 'Sepia a la plancha + espárragos (240 cal)',
+                        'Recena': 'Manzanilla'
+                    },
+                    'Sábado': {
+                        'Desayuno': 'Bowl de frutas con yogur (170 cal)',
+                        'Almuerzo': 'Zumo verde detox (110 cal)',
+                        'Comida': 'Dorada al papillote + pimientos (280 cal)',
+                        'Merienda': 'Pera (60 cal)',
+                        'Cena': 'Calabacín relleno de verduras (200 cal)',
+                        'Recena': 'Té rojo'
+                    },
+                    'Domingo': {
+                        'Desayuno': 'Tortitas de avena con miel (190 cal)',
+                        'Almuerzo': 'Crema fría de pepino (90 cal)',
+                        'Comida': 'Paella de verduras light (300 cal)',
+                        'Merienda': 'Batido de frutas (130 cal)',
+                        'Cena': 'Ensalada completa con queso fresco (210 cal)',
+                        'Recena': 'Valeriana'
+                    }
+                };
+
+                // Llenar la tabla con la dieta
+                const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+                const comidas = ['Desayuno', 'Almuerzo', 'Comida', 'Merienda', 'Cena', 'Recena'];
+
+                // Obtener todas las filas de la tabla excepto la de ejercicio y apuntes
+                const tableRows = this.table.querySelectorAll('tbody tr');
+
+                comidas.forEach((comida, comidaIndex) => {
+                    dias.forEach((dia, diaIndex) => {
+                        const cell = tableRows[comidaIndex].cells[diaIndex + 1];
+                        if (cell && dietaBajaCalorias[dia] && dietaBajaCalorias[dia][comida]) {
+                            cell.textContent = dietaBajaCalorias[dia][comida];
+                            cell.classList.add('modified');
+                        }
+                    });
+                });
+
+                // Llenar ejercicios recomendados
+                const ejercicios = [
+                    'Cardio 30min',
+                    'Yoga 45min',
+                    'Caminar 1h',
+                    'Natación 30min',
+                    'Pilates 45min',
+                    'Bicicleta 40min',
+                    'Descanso activo'
+                ];
+
+                const ejercicioRow = tableRows[6]; // Fila de ejercicio
+                if (ejercicioRow) {
+                    ejercicios.forEach((ejercicio, index) => {
+                        const cell = ejercicioRow.cells[index + 1];
+                        if (cell) {
+                            cell.textContent = ejercicio;
+                            cell.classList.add('modified');
+                        }
+                    });
+                }
+
+                // Llenar apuntes con información nutricional
+                const apuntes = [
+                    'Beber 2L agua',
+                    'Sin azúcar añadido',
+                    'Proteína en cada comida',
+                    'Verduras variadas',
+                    '5 comidas al día',
+                    'Masticar despacio',
+                    'Descanso 8h'
+                ];
+
+                const apuntesRow = tableRows[7]; // Fila de apuntes
+                if (apuntesRow) {
+                    apuntes.forEach((apunte, index) => {
+                        const cell = apuntesRow.cells[index + 1];
+                        if (cell) {
+                            cell.textContent = apunte;
+                            cell.classList.add('modified');
+                        }
+                    });
+                }
+
+                this.showAlert('Dieta baja en calorías generada correctamente 🥗✅', 'success');
+            }
+
+            clearData() {
+                if (!confirm('¿Borrar todos los datos?\nEsta acción no se puede deshacer.')) return;
+                
+                window.tableData = null;
+                this.table.querySelectorAll('td[contenteditable="true"]').forEach(td => {
+                    td.textContent = '';
+                    td.classList.remove('modified');
+                });
+                this.showAlert('Datos borrados correctamente 🗑️', 'info');
+            }
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', () => new Planificador());
+    </script>
+</body>
+</html>
