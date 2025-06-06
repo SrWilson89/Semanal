@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Planificador Semanal</title>
-    <link rel="shortcut icon" href="Anotación 2024-11-21 170819.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
@@ -213,6 +212,65 @@
             display: none; 
         }
 
+        .diet-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .diet-options {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .diet-options h3 {
+            color: var(--text-dark);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .diet-option {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid var(--secondary-color);
+            border-radius: 10px;
+            background: white;
+            color: var(--text-dark);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        .diet-option:hover {
+            background: var(--secondary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .close-modal {
+            background: var(--error-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+
         footer {
             width: 100%;
             background-color: #333;
@@ -372,11 +430,11 @@
     </div>
 
     <div class="button-container">
-        <button id="save-button" aria-label="Guardar cambios">💾 Guardar</button>
-        <button id="clear-button" aria-label="Borrar toda la semana">🗑️ Borrar</button>
-        <button id="share-button" aria-label="Guardar como Imagen">🖼️ Guardar Imagen</button>
-        <!-- <button id="pdf-button" aria-label="Guardar como PDF">📄 Guardar PDF</button> -->
-        <button id="diet-button" aria-label="Generar Dieta">🥗 Generar Dieta</button>
+        <button id="save-button">💾 Guardar</button>
+        <button id="clear-button">🗑️ Borrar</button>
+        <button id="share-button">🖼️ Guardar Imagen</button>
+        <!-- <button id="pdf-button">📄 Guardar PDF</button> -->
+        <button id="diet-button">🥗 Generar Dieta</button>
     </div>
 
     <div class="loading-spinner hidden">
@@ -384,9 +442,11 @@
         <p>Generando archivo...</p>
     </div>
 
+    <div id="diet-modal-container"></div>
+
     <footer>
-        <a href="https://srwilson89.github.io/Lista-de-Tareas/">Lista de Compras</a>
-        <a href="https://srwilson89.github.io/Balance/">Balance</a>
+        <a href="https://srwilson89.github.io/Lista-de-Tareas/" target="_blank">Lista de Compras</a>
+        <a href="https://srwilson89.github.io/Balance/" target="_blank">Balance</a>
     </footer>
     
     <script>
@@ -397,7 +457,6 @@
                 this.setupAutoSave();
                 this.loadData();
                 this.setupBeforeUnload();
-                this.updateButtonText();
             }
 
             initEventListeners() {
@@ -405,19 +464,13 @@
                 document.getElementById('clear-button').addEventListener('click', () => this.clearData());
                 document.getElementById('share-button').addEventListener('click', () => this.exportarImagen());
                 document.getElementById('pdf-button').addEventListener('click', () => this.exportarPDF());
-                document.getElementById('diet-button').addEventListener('click', () => this.generarDieta());
+                document.getElementById('diet-button').addEventListener('click', () => this.mostrarOpcionesDieta());
                 
                 this.table.addEventListener('input', (e) => {
                     if (e.target.tagName === 'TD' && e.target.contentEditable === 'true') {
                         e.target.classList.add('modified');
                     }
                 });
-            }
-
-            updateButtonText() {
-                const shareButton = document.getElementById('share-button');
-                shareButton.innerHTML = '🖼️ Guardar Imagen';
-                shareButton.setAttribute('aria-label', 'Guardar como Imagen');
             }
 
             setupAutoSave() {
@@ -427,7 +480,7 @@
                         this.saveData(false);
                         this.showAlert('Cambios guardados automáticamente', 'success');
                     }
-                }, 120000);
+                }, 120000); // 2 minutos
             }
 
             setupBeforeUnload() {
@@ -451,40 +504,21 @@
                 }, 3000);
             }
 
-            validateData() {
-                const emptyCells = [...this.table.querySelectorAll('td[contenteditable="true"]')]
-                    .filter(td => td.textContent.trim() === '');
-                
-                if (emptyCells.length > 0) {
-                    this.showAlert(`Tienes ${emptyCells.length} celdas vacías`, 'warning');
-                    return false;
-                }
-                return true;
-            }
-
             saveData(showAlert = true) {
                 try {
                     const data = [];
-                    for (let i = 1; i < this.table.rows.length; i++) {
-                        const row = [];
-                        for (let j = 1; j < this.table.rows[i].cells.length; j++) {
-                            row.push(this.table.rows[i].cells[j].textContent);
-                        }
-                        data.push(row);
-                    }
-
-                    const versionedData = {
-                        timestamp: new Date().toISOString(),
-                        data: data
-                    };
-
-                    // Simulamos localStorage con variables en memoria
-                    window.planHistory = window.planHistory || [];
-                    window.planHistory.push(versionedData);
-                    if (window.planHistory.length > 5) window.planHistory.shift();
-
-                    window.tableData = data;
+                    const rows = this.table.querySelectorAll('tbody tr');
                     
+                    rows.forEach(row => {
+                        const rowData = [];
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach(cell => {
+                            rowData.push(cell.textContent);
+                        });
+                        data.push(rowData);
+                    });
+
+                    localStorage.setItem('planificadorData', JSON.stringify(data));
                     this.table.querySelectorAll('.modified').forEach(td => td.classList.remove('modified'));
                     
                     if (showAlert) {
@@ -499,161 +533,38 @@
 
             loadData() {
                 try {
-                    const savedData = window.tableData;
+                    const savedData = JSON.parse(localStorage.getItem('planificadorData'));
                     if (!savedData) return;
 
-                    for (let i = 1; i < this.table.rows.length; i++) {
-                        for (let j = 1; j < this.table.rows[i].cells.length; j++) {
-                            this.table.rows[i].cells[j].textContent = savedData[i - 1][j - 1] || '';
-                        }
-                    }
+                    const rows = this.table.querySelectorAll('tbody tr');
+                    
+                    rows.forEach((row, rowIndex) => {
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach((cell, cellIndex) => {
+                            if (savedData[rowIndex] && savedData[rowIndex][cellIndex]) {
+                                cell.textContent = savedData[rowIndex][cellIndex];
+                            }
+                        });
+                    });
                 } catch (error) {
                     this.showAlert('Error al cargar datos ❌', 'error');
                 }
             }
 
-            async exportarPDF() {
-                try {
-                    document.querySelector('.loading-spinner').classList.remove('hidden');
-                    
-                    // Guardar los datos antes de generar el PDF
-                    this.saveData(false);
-
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF('l', 'mm', 'a4'); // Formato horizontal
-                    
-                    const today = new Date();
-                    const dateString = today.toLocaleDateString('es-ES', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
+            clearData() {
+                if (confirm('¿Estás seguro de que quieres borrar toda la semana?')) {
+                    this.table.querySelectorAll('td[contenteditable="true"]').forEach(td => {
+                        td.textContent = '';
+                        td.classList.remove('modified');
                     });
-
-                    // Configurar fuente
-                    doc.setFont('helvetica');
-                    
-                    // Título
-                    doc.setFontSize(20);
-                    doc.setTextColor(136, 14, 79); // Color similar al tema
-                    doc.text('🥗 Planificador Semanal', 148, 20, { align: 'center' });
-                    
-                    // Fecha
-                    doc.setFontSize(12);
-                    doc.setTextColor(0, 0, 0);
-                    doc.text(`Fecha: ${dateString}`, 148, 30, { align: 'center' });
-
-                    // Obtener datos de la tabla
-                    const headers = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-                    const rows = [];
-                    
-                    // Obtener las filas de la tabla
-                    const tableRows = this.table.querySelectorAll('tbody tr');
-                    tableRows.forEach(row => {
-                        const rowData = [];
-                        const cells = row.querySelectorAll('td');
-                        cells.forEach(cell => {
-                            rowData.push(cell.textContent.trim() || '');
-                        });
-                        rows.push(rowData);
-                    });
-
-                    // Crear tabla en PDF con autoTable
-                    if (typeof doc.autoTable === 'function') {
-                        doc.autoTable({
-                            head: [headers],
-                            body: rows,
-                            startY: 40,
-                            margin: { top: 40, left: 10, right: 10 },
-                            styles: {
-                                fontSize: 10,
-                                cellPadding: 3,
-                                textColor: [0, 0, 0],
-                            },
-                            headStyles: {
-                                fillColor: [233, 30, 99], // Color del header
-                                textColor: [255, 255, 255],
-                                fontStyle: 'bold',
-                            },
-                            alternateRowStyles: {
-                                fillColor: [255, 240, 246], // Color alternado
-                            },
-                            columnStyles: {
-                                0: { fontStyle: 'bold', fillColor: [255, 240, 246] }
-                            }
-                        });
-                    } else {
-                        // Fallback manual si autoTable no está disponible
-                        let yPosition = 50;
-                        const cellWidth = 35;
-                        const cellHeight = 15;
-                        
-                        // Dibujar headers
-                        doc.setFillColor(233, 30, 99);
-                        doc.setTextColor(255, 255, 255);
-                        doc.setFontSize(10);
-                        
-                        headers.forEach((header, i) => {
-                            const x = 15 + (i * cellWidth);
-                            doc.rect(x, yPosition, cellWidth, cellHeight, 'F');
-                            doc.text(header, x + cellWidth/2, yPosition + cellHeight/2 + 2, { align: 'center' });
-                        });
-                        
-                        yPosition += cellHeight;
-                        
-                        // Dibujar filas
-                        doc.setTextColor(0, 0, 0);
-                        rows.forEach((row, rowIndex) => {
-                            row.forEach((cell, cellIndex) => {
-                                const x = 15 + (cellIndex * cellWidth);
-                                
-                                // Color de fondo alternado
-                                if (rowIndex % 2 === 0) {
-                                    doc.setFillColor(255, 240, 246);
-                                    doc.rect(x, yPosition, cellWidth, cellHeight, 'F');
-                                }
-                                
-                                // Texto en negrita para la primera columna
-                                if (cellIndex === 0) {
-                                    doc.setFont('helvetica', 'bold');
-                                } else {
-                                    doc.setFont('helvetica', 'normal');
-                                }
-                                
-                                // Dibujar borde
-                                doc.rect(x, yPosition, cellWidth, cellHeight);
-                                
-                                // Texto centrado con manejo de texto largo
-                                const text = cell.length > 15 ? cell.substring(0, 12) + '...' : cell;
-                                doc.text(text, x + cellWidth/2, yPosition + cellHeight/2 + 2, { align: 'center' });
-                            });
-                            yPosition += cellHeight;
-                        });
-                    }
-
-                    // Pie de página
-                    doc.setFontSize(8);
-                    doc.setTextColor(128, 128, 128);
-                    doc.text(`Planificador generado el ${new Date().toLocaleString()}`, 148, 200, { align: 'center' });
-
-                    // Descargar PDF
-                    const fileName = `Plan_Semanal_${today.toISOString().split('T')[0]}.pdf`;
-                    doc.save(fileName);
-                    
-                    this.showAlert('PDF generado correctamente ✅', 'success');
-                    
-                } catch (error) {
-                    this.showAlert('Error al generar PDF ❌', 'error');
-                    console.error('Error al generar PDF:', error);
-                } finally {
-                    document.querySelector('.loading-spinner').classList.add('hidden');
+                    localStorage.removeItem('planificadorData');
+                    this.showAlert('Datos borrados correctamente 🗑️', 'info');
                 }
             }
 
             async exportarImagen() {
                 try {
                     document.querySelector('.loading-spinner').classList.remove('hidden');
-                    
                     this.saveData(false);
                     
                     const today = new Date();
@@ -664,283 +575,254 @@
                         day: 'numeric'
                     });
                     
-                    const imageContainer = document.createElement('div');
-                    imageContainer.style.padding = '20px';
-                    imageContainer.style.backgroundColor = '#fff';
-                    imageContainer.style.boxShadow = '0 4px 20px rgba(232, 30, 99, 0.1)';
-                    imageContainer.style.borderRadius = '12px';
-                    imageContainer.style.display = 'inline-block';
-                    imageContainer.style.maxWidth = '100%';
+                    // Crear contenedor para la captura
+                    const container = document.createElement('div');
+                    container.style.padding = '20px';
+                    container.style.backgroundColor = 'white';
+                    container.style.position = 'absolute';
+                    container.style.left = '-9999px';
+                    container.innerHTML = `
+                        <h1 style="color: #880e4f; text-align: center;">🥗 Planificador Semanal</h1>
+                        <p style="text-align: center;">${dateString}</p>
+                        ${this.table.outerHTML}
+                        <p style="text-align: center; color: #888; font-size: 12px;">
+                            Generado el ${new Date().toLocaleString()}
+                        </p>
+                    `;
+                    document.body.appendChild(container);
                     
-                    const title = document.createElement('h1');
-                    title.textContent = '🥗 Planificador Semanal';
-                    title.style.textAlign = 'center';
-                    title.style.color = '#880e4f';
-                    title.style.marginBottom = '10px';
-                    title.style.fontFamily = 'Segoe UI, Arial, sans-serif';
-                    imageContainer.appendChild(title);
-                    
-                    const dateElement = document.createElement('p');
-                    dateElement.textContent = `Fecha: ${dateString}`;
-                    dateElement.style.textAlign = 'center';
-                    dateElement.style.marginBottom = '20px';
-                    dateElement.style.fontFamily = 'Segoe UI, Arial, sans-serif';
-                    imageContainer.appendChild(dateElement);
-                    
-                    const newTable = document.createElement('table');
-                    newTable.style.width = '100%';
-                    newTable.style.borderCollapse = 'collapse';
-                    newTable.style.margin = '0 auto';
-                    newTable.style.fontFamily = 'Segoe UI, Arial, sans-serif';
-                    newTable.style.tableLayout = 'auto';
-                    
-                    const thead = document.createElement('thead');
-                    const headerRow = document.createElement('tr');
-                    
-                    const originalHeaders = this.table.querySelectorAll('thead th');
-                    originalHeaders.forEach(th => {
-                        const newTh = document.createElement('th');
-                        newTh.textContent = th.textContent;
-                        newTh.style.backgroundColor = '#e91e63';
-                        newTh.style.color = 'white';
-                        newTh.style.border = '1px solid #ddd';
-                        newTh.style.padding = '12px';
-                        newTh.style.textAlign = 'center';
-                        headerRow.appendChild(newTh);
-                    });
-                    
-                    thead.appendChild(headerRow);
-                    newTable.appendChild(thead);
-                    
-                    const tbody = document.createElement('tbody');
-                    
-                    const originalRows = this.table.querySelectorAll('tbody tr');
-                    originalRows.forEach(row => {
-                        const newRow = document.createElement('tr');
-                        
-                        const cells = row.querySelectorAll('td');
-                        cells.forEach(cell => {
-                            const newCell = document.createElement('td');
-                            newCell.textContent = cell.textContent;
-                            newCell.style.border = '1px solid #ddd';
-                            newCell.style.padding = '10px';
-                            newCell.style.textAlign = 'center';
-                            newCell.style.wordWrap = 'break-word';
-                            newCell.style.maxWidth = '200px';
-                            
-                            if (cell === cells[0]) {
-                                newCell.style.fontWeight = 'bold';
-                                newCell.style.backgroundColor = '#fff0f6';
-                                newCell.style.whiteSpace = 'nowrap';
-                            }
-                            
-                            newRow.appendChild(newCell);
-                        });
-                        
-                        tbody.appendChild(newRow);
-                    });
-                    
-                    newTable.appendChild(tbody);
-                    imageContainer.appendChild(newTable);
-                    
-                    const notes = document.createElement('p');
-                    notes.textContent = 'Planificador generado en ' + new Date().toLocaleString();
-                    notes.style.textAlign = 'center';
-                    notes.style.fontSize = '12px';
-                    notes.style.marginTop = '20px';
-                    notes.style.color = '#888';
-                    notes.style.fontFamily = 'Segoe UI, Arial, sans-serif';
-                    imageContainer.appendChild(notes);
-                    
-                    document.body.appendChild(imageContainer);
-                    imageContainer.style.position = 'absolute';
-                    imageContainer.style.left = '-9999px';
-                    imageContainer.style.top = '0';
-                    
-                    const canvas = await html2canvas(imageContainer, {
+                    // Capturar como imagen
+                    const canvas = await html2canvas(container, {
                         scale: 2,
-                        logging: false,
-                        useCORS: true,
-                        allowTaint: true,
-                        backgroundColor: "#ffffff",
-                        windowWidth: document.documentElement.offsetWidth,
-                        windowHeight: document.documentElement.offsetHeight,
-                        scrollX: 0,
-                        scrollY: 0,
-                        height: imageContainer.scrollHeight,
-                        width: imageContainer.scrollWidth,
-                        onclone: (clonedDoc, clonedElem) => {
-                            clonedElem.style.position = 'static';
-                            clonedElem.style.left = '0';
-                            clonedElem.style.top = '0';
-                        }
+                        backgroundColor: '#ffffff'
                     });
                     
-                    const imageUrl = canvas.toDataURL('image/png');
-                    
+                    // Descargar
                     const link = document.createElement('a');
-                    link.href = imageUrl;
-                    link.download = `Plan_Semanal_${today.toISOString().split('T')[0]}.png`;
-                    
+                    link.download = `Planificador_${today.toISOString().split('T')[0]}.png`;
+                    link.href = canvas.toDataURL('image/png');
                     link.click();
                     
-                    document.body.removeChild(imageContainer);
                     this.showAlert('Imagen guardada correctamente ✅', 'success');
                     
                 } catch (error) {
                     this.showAlert('Error al generar imagen ❌', 'error');
-                    console.error('Error al generar imagen:', error);
+                    console.error('Error:', error);
+                } finally {
+                    document.querySelector('.loading-spinner').classList.add('hidden');
+                    const container = document.querySelector('div[style*="left: -9999px"]');
+                    if (container) container.remove();
+                }
+            }
+
+            async exportarPDF() {
+                try {
+                    document.querySelector('.loading-spinner').classList.remove('hidden');
+                    this.saveData(false);
+                    
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF('l', 'mm', 'a4');
+                    
+                    const today = new Date();
+                    const dateString = today.toLocaleDateString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    
+                    // Título
+                    doc.setFont('helvetica');
+                    doc.setFontSize(20);
+                    doc.setTextColor(136, 14, 79);
+                    doc.text('🥗 Planificador Semanal', 148, 20, { align: 'center' });
+                    
+                    // Fecha
+                    doc.setFontSize(12);
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(`Fecha: ${dateString}`, 148, 30, { align: 'center' });
+                    
+                    // Datos de la tabla
+                    const headers = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+                    const rows = [];
+                    
+                    const tableRows = this.table.querySelectorAll('tbody tr');
+                    tableRows.forEach(row => {
+                        const rowData = [];
+                        const cells = row.querySelectorAll('td');
+                        cells.forEach(cell => {
+                            rowData.push(cell.textContent.trim());
+                        });
+                        rows.push(rowData);
+                    });
+                    
+                    // Tabla con autoTable (si está disponible)
+                    if (typeof doc.autoTable === 'function') {
+                        doc.autoTable({
+                            head: [headers],
+                            body: rows,
+                            startY: 40,
+                            styles: {
+                                fontSize: 10,
+                                cellPadding: 3,
+                                textColor: [0, 0, 0],
+                            },
+                            headStyles: {
+                                fillColor: [233, 30, 99],
+                                textColor: [255, 255, 255],
+                                fontStyle: 'bold',
+                            },
+                            alternateRowStyles: {
+                                fillColor: [255, 240, 246],
+                            },
+                            columnStyles: {
+                                0: { fontStyle: 'bold', fillColor: [255, 240, 246] }
+                            }
+                        });
+                    } else {
+                        // Fallback manual
+                        let y = 50;
+                        headers.forEach((header, i) => {
+                            doc.setFillColor(233, 30, 99);
+                            doc.rect(15 + (i * 35), y, 35, 15, 'F');
+                            doc.setTextColor(255, 255, 255);
+                            doc.text(header, 15 + (i * 35) + 17.5, y + 10, { align: 'center' });
+                        });
+                        y += 15;
+                        
+                        rows.forEach((row, rowIndex) => {
+                            row.forEach((cell, cellIndex) => {
+                                if (rowIndex % 2 === 0) {
+                                    doc.setFillColor(255, 240, 246);
+                                    doc.rect(15 + (cellIndex * 35), y, 35, 15, 'F');
+                                }
+                                doc.setTextColor(0, 0, 0);
+                                doc.text(cell || '-', 15 + (cellIndex * 35) + 17.5, y + 10, { align: 'center', maxWidth: 30 });
+                            });
+                            y += 15;
+                        });
+                    }
+                    
+                    // Pie de página
+                    doc.setFontSize(8);
+                    doc.setTextColor(128, 128, 128);
+                    doc.text(`Generado el ${new Date().toLocaleString()}`, 148, 200, { align: 'center' });
+                    
+                    // Descargar
+                    doc.save(`Planificador_${today.toISOString().split('T')[0]}.pdf`);
+                    this.showAlert('PDF generado correctamente ✅', 'success');
+                    
+                } catch (error) {
+                    this.showAlert('Error al generar PDF ❌', 'error');
+                    console.error('Error:', error);
                 } finally {
                     document.querySelector('.loading-spinner').classList.add('hidden');
                 }
             }
 
-            generarDieta() {
-                const password = prompt('Introduce la contraseña para generar la dieta:');
+            mostrarOpcionesDieta() {
+                const modal = document.createElement('div');
+                modal.className = 'diet-modal';
+                modal.innerHTML = `
+                    <div class="diet-options">
+                        <h3>Elige un tipo de dieta</h3>
+                        <button class="diet-option" data-diet="mediterranea">Mediterránea</button>
+                        <button class="diet-option" data-diet="keto">Keto</button>
+                        <button class="diet-option" data-diet="vegana">Vegana</button>
+                        <button class="diet-option" data-diet="equilibrada">Equilibrada</button>
+                        <button class="close-modal">Cancelar</button>
+                    </div>
+                `;
+                document.getElementById('diet-modal-container').appendChild(modal);
                 
-                if (password !== 'iG070525') {
-                    this.showAlert('Esta función todavía está en construcción 🚧', 'warning');
-                    return;
-                }
+                modal.querySelectorAll('.diet-option').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.generarDieta(btn.dataset.diet);
+                        modal.remove();
+                    });
+                });
+                
+                modal.querySelector('.close-modal').addEventListener('click', () => {
+                    modal.remove();
+                });
+            }
 
-                // Dieta baja en calorías
-                const dietaBajaCalorias = {
-                    'Lunes': {
-                        'Desayuno': 'Yogur griego con fresas (150 cal)',
-                        'Almuerzo': 'Ensalada de atún (200 cal)',
-                        'Comida': 'Pechuga a la plancha + verduras (300 cal)',
-                        'Merienda': 'Manzana (80 cal)',
-                        'Cena': 'Salmón al vapor + brócoli (250 cal)',
-                        'Recena': 'Infusión de manzanilla'
+            generarDieta(tipo) {
+                const dietas = {
+                    mediterranea: {
+                        Desayuno: ['Tostadas con aceite y tomate', 'Yogur con frutos secos', 'Fruta fresca'],
+                        Almuerzo: ['Ensalada griega', 'Salmón a la plancha', 'Hummus con pan pita'],
+                        Comida: ['Paella de mariscos', 'Pescado al horno con verduras', 'Lentejas estofadas'],
+                        Merienda: ['Frutos secos', 'Queso fresco con miel', 'Smoothie de frutas'],
+                        Cena: ['Gazpacho', 'Tortilla de espinacas', 'Berenjenas rellenas'],
+                        Recena: ['Infusión relajante', 'Yogur', 'Fruta']
                     },
-                    'Martes': {
-                        'Desayuno': 'Avena con arándanos (180 cal)',
-                        'Almuerzo': 'Gazpacho + tostada integral (150 cal)',
-                        'Comida': 'Merluza al horno + calabacín (280 cal)',
-                        'Merienda': 'Yogur natural (90 cal)',
-                        'Cena': 'Tortilla francesa + ensalada (220 cal)',
-                        'Recena': 'Té verde'
+                    keto: {
+                        Desayuno: ['Huevos revueltos con aguacate', 'Tortilla de queso', 'Yogur keto'],
+                        Almuerzo: ['Ensalada César sin croutones', 'Pollo al curry con coliflor', 'Salmón con espárragos'],
+                        Comida: ['Carne asada con brócoli', 'Hamburguesa sin pan con queso', 'Pescado con espinacas'],
+                        Merienda: ['Nueces y almendras', 'Queso con jamón', 'Aceitunas'],
+                        Cena: ['Sopa de coliflor', 'Omelette de champiñones', 'Atún con mayonesa'],
+                        Recena: ['Té de hierbas', 'Queso cottage', 'Aguacate']
                     },
-                    'Miércoles': {
-                        'Desayuno': 'Batido de proteínas (160 cal)',
-                        'Almuerzo': 'Hummus con bastones verdura (120 cal)',
-                        'Comida': 'Pollo al curry light + arroz integral (320 cal)',
-                        'Merienda': 'Naranja (70 cal)',
-                        'Cena': 'Crema de calabaza (180 cal)',
-                        'Recena': 'Leche desnatada (50 cal)'
+                    vegana: {
+                        Desayuno: ['Smoothie bowl', 'Tostadas con aguacate', 'Avena con frutas'],
+                        Almuerzo: ['Buddha bowl', 'Falafel con hummus', 'Wrap de garbanzos'],
+                        Comida: ['Curry de lentejas', 'Hamburguesa de quinoa', 'Estofado de tofu'],
+                        Merienda: ['Fruta fresca', 'Barritas energéticas', 'Batido verde'],
+                        Cena: ['Sopa miso', 'Wok de verduras', 'Ensalada de quinoa'],
+                        Recena: ['Leche de almendras', 'Frutos secos', 'Galletas veganas']
                     },
-                    'Jueves': {
-                        'Desayuno': 'Tostada integral con aguacate (200 cal)',
-                        'Almuerzo': 'Smoothie verde (140 cal)',
-                        'Comida': 'Lubina a la sal + judías verdes (290 cal)',
-                        'Merienda': 'Puñado de almendras (100 cal)',
-                        'Cena': 'Revuelto de espinacas (190 cal)',
-                        'Recena': 'Infusión digestiva'
-                    },
-                    'Viernes': {
-                        'Desayuno': 'Café con leche desnatada + kiwi (120 cal)',
-                        'Almuerzo': 'Caldo de verduras (80 cal)',
-                        'Comida': 'Ternera magra + puré de coliflor (310 cal)',
-                        'Merienda': 'Gelatina sin azúcar (40 cal)',
-                        'Cena': 'Sepia a la plancha + espárragos (240 cal)',
-                        'Recena': 'Manzanilla'
-                    },
-                    'Sábado': {
-                        'Desayuno': 'Bowl de frutas con yogur (170 cal)',
-                        'Almuerzo': 'Zumo verde detox (110 cal)',
-                        'Comida': 'Dorada al papillote + pimientos (280 cal)',
-                        'Merienda': 'Pera (60 cal)',
-                        'Cena': 'Calabacín relleno de verduras (200 cal)',
-                        'Recena': 'Té rojo'
-                    },
-                    'Domingo': {
-                        'Desayuno': 'Tortitas de avena con miel (190 cal)',
-                        'Almuerzo': 'Crema fría de pepino (90 cal)',
-                        'Comida': 'Paella de verduras light (300 cal)',
-                        'Merienda': 'Batido de frutas (130 cal)',
-                        'Cena': 'Ensalada completa con queso fresco (210 cal)',
-                        'Recena': 'Valeriana'
+                    equilibrada: {
+                        Desayuno: ['Cereales integrales con leche', 'Tostadas con mermelada', 'Fruta y yogur'],
+                        Almuerzo: ['Sándwich integral', 'Ensalada variada', 'Fruta'],
+                        Comida: ['Pasta integral con verduras', 'Pollo al horno con patatas', 'Arroz con legumbres'],
+                        Merienda: ['Frutos secos', 'Yogur con granola', 'Zumo natural'],
+                        Cena: ['Crema de calabaza', 'Tortilla francesa', 'Pescado al vapor'],
+                        Recena: ['Vaso de leche', 'Plátano', 'Yogur']
                     }
                 };
 
-                // Llenar la tabla con la dieta
-                const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-                const comidas = ['Desayuno', 'Almuerzo', 'Comida', 'Merienda', 'Cena', 'Recena'];
-
-                // Obtener todas las filas de la tabla excepto la de ejercicio y apuntes
-                const tableRows = this.table.querySelectorAll('tbody tr');
-
-                comidas.forEach((comida, comidaIndex) => {
-                    dias.forEach((dia, diaIndex) => {
-                        const cell = tableRows[comidaIndex].cells[diaIndex + 1];
-                        if (cell && dietaBajaCalorias[dia] && dietaBajaCalorias[dia][comida]) {
-                            cell.textContent = dietaBajaCalorias[dia][comida];
-                            cell.classList.add('modified');
-                        }
-                    });
-                });
-
-                // Llenar ejercicios recomendados
-                const ejercicios = [
-                    'Cardio 30min',
-                    'Yoga 45min',
-                    'Caminar 1h',
-                    'Natación 30min',
-                    'Pilates 45min',
-                    'Bicicleta 40min',
-                    'Descanso activo'
-                ];
-
-                const ejercicioRow = tableRows[6]; // Fila de ejercicio
-                if (ejercicioRow) {
-                    ejercicios.forEach((ejercicio, index) => {
-                        const cell = ejercicioRow.cells[index + 1];
-                        if (cell) {
-                            cell.textContent = ejercicio;
-                            cell.classList.add('modified');
-                        }
-                    });
-                }
-
-                // Llenar apuntes con información nutricional
-                const apuntes = [
-                    'Beber 2L agua',
-                    'Sin azúcar añadido',
-                    'Proteína en cada comida',
-                    'Verduras variadas',
-                    '5 comidas al día',
-                    'Masticar despacio',
-                    'Descanso 8h'
-                ];
-
-                const apuntesRow = tableRows[7]; // Fila de apuntes
-                if (apuntesRow) {
-                    apuntes.forEach((apunte, index) => {
-                        const cell = apuntesRow.cells[index + 1];
-                        if (cell) {
-                            cell.textContent = apunte;
-                            cell.classList.add('modified');
-                        }
-                    });
-                }
-
-                this.showAlert('Dieta baja en calorías generada correctamente 🥗✅', 'success');
-            }
-
-            clearData() {
-                if (!confirm('¿Borrar todos los datos?\nEsta acción no se puede deshacer.')) return;
+                // Obtener todas las filas del cuerpo de la tabla
+                const filas = this.table.querySelectorAll('tbody tr');
                 
-                window.tableData = null;
-                this.table.querySelectorAll('td[contenteditable="true"]').forEach(td => {
-                    td.textContent = '';
-                    td.classList.remove('modified');
+                filas.forEach(fila => {
+                    const tipoComida = fila.cells[0].textContent.trim();
+                    
+                    // Solo procesar filas de comidas (ignorar "Ejercicio" y "Apuntes")
+                    if (dietas[tipo][tipoComida]) {
+                        const opciones = dietas[tipo][tipoComida];
+                        
+                        // Llenar cada día de la semana
+                        for (let i = 1; i < fila.cells.length; i++) {
+                            const comidaAleatoria = opciones[Math.floor(Math.random() * opciones.length)];
+                            fila.cells[i].textContent = comidaAleatoria;
+                            fila.cells[i].classList.add('modified');
+                        }
+                    }
                 });
-                this.showAlert('Datos borrados correctamente 🗑️', 'info');
+
+                // Generar ejercicios aleatorios (opcional)
+                const ejercicios = ['Yoga', 'Cardio', 'Pesas', 'Natación', 'Caminata', 'Descanso'];
+                const filaEjercicio = [...filas].find(fila => fila.cells[0].textContent.trim() === 'Ejercicio');
+
+                if (filaEjercicio) {
+                    for (let i = 1; i < filaEjercicio.cells.length; i++) {
+                        const ejercicio = ejercicios[Math.floor(Math.random() * ejercicios.length)];
+                        filaEjercicio.cells[i].textContent = ejercicio;
+                        filaEjercicio.cells[i].classList.add('modified');
+                    }
+                }
+
+                this.showAlert(`¡Dieta ${tipo} generada con éxito! 🌱`, 'success');
+                this.saveData(false);
             }
         }
 
-        // Inicialización
-        document.addEventListener('DOMContentLoaded', () => new Planificador());
+        // Inicializar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', () => {
+            new Planificador();
+        });
     </script>
 </body>
 </html>
